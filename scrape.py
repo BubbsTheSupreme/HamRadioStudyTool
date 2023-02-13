@@ -1,40 +1,29 @@
-from selectolax.parser import HTMLParser
-# import database
+from bs4 import BeautifulSoup
 import httpx
+import json
 
 
 resp = httpx.get("https://hamexam.org/view_pool/18-Technician")
 
-if resp.status_code == 200:
-	question_div = []
-	parse = HTMLParser(resp.text)
-	content_divs = parse.css("div.content")
-	content_divs.pop(0)
-	for div in content_divs:
-		node = div.css("h2")
-		if node != []:
-			question_div.append(div)
-	for div in question_div:
-		cards = div.css("div")
-		for card in cards:
-			qa = card.css("div p")
-			answers = card.css("div li")
-			print(qa)
-			# for a, q in qa:
-			# 	print(a)
-			# 	print(q)
-				# a = entry.css("span")
-				# q = ""
-				# if a != []:
-				# 	a = a[0].text()
-				# else:
-				# 	q = entry.text()
-				# for answer in answers:
-				# 	ans_text = answer.css("span")[0]
-				# 	print(f"{ans_text.text()} \n")
+flashcards = []
 
-		
+if resp.status_code == 200:
+	soup = BeautifulSoup(resp.content, "html.parser")
+	questions = soup.find_all("div", class_="question")
+	for q in questions:
+		answer = q.find("span", class_="correctAnswerLetter")
+		question = q.find("p", class_="questionText")
+		answers = q.find_all("span", class_="noMarks")
+		cur_answers = []
+		for a in answers:
+			cur_answers.append(a.text)
+		card = {
+			"answer": answer.text,
+			"question": question.text,
+			"answers": cur_answers
+		}
+		flashcards.append(card)
+	with open("questions.json", "w") as jsf:
+		json.dump(flashcards, jsf, indent=4)
 else:
 	print(f"HTTP Status Code{resp.statuscode}")
-	
-#debugging commented section
